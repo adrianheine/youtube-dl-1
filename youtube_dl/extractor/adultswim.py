@@ -7,6 +7,7 @@ import re
 from .turner import TurnerBaseIE
 from ..utils import (
     determine_ext,
+    ExtractorError,
     float_or_none,
     int_or_none,
     mimetype2ext,
@@ -174,8 +175,13 @@ class AdultSwimIE(TurnerBaseIE):
                         continue
                     ext = determine_ext(asset_url, mimetype2ext(asset.get('mime_type')))
                     if ext == 'm3u8':
-                        info['formats'].extend(self._extract_m3u8_formats(
-                            asset_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                        try:
+                            info['formats'].extend(self._extract_m3u8_formats(
+                                asset_url, video_id, 'mp4', m3u8_id='hls'))
+                        except ExtractorError as e:
+                            if e.cause.code == 403:
+                                self.raise_geo_restricted()
+                            self.report_warning(e.args[0])
                     elif ext == 'f4m':
                         continue
                         # info['formats'].extend(self._extract_f4m_formats(
